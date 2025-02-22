@@ -230,15 +230,15 @@ inline static const char *get_symbols_type(unsigned char type)
   switch (type)
   {
   case 0:
-    return "STT_NOTYPE"; 
+    return "STT_NOTYPE";
   case 1:
-    return "STT_OBJECT";  
+    return "STT_OBJECT";
   case 2:
-    return "STT_FUNC";  
+    return "STT_FUNC";
   case 3:
-    return "STT_SECTION";  
+    return "STT_SECTION";
   case 4:
-    return "STT_FILE";  
+    return "STT_FILE";
   default:
     return "DEFFAULT";
   }
@@ -248,29 +248,31 @@ inline static const char *get_symbols_bind(unsigned int bind)
   switch (bind)
   {
   case 0:
-    return "STB_LOCAL"; 
+    return "STB_LOCAL";
   case 1:
-    return "STB_GLOBAL";  
+    return "STB_GLOBAL";
   case 2:
-    return "STB_WEAK";  
+    return "STB_WEAK";
   case 3:
-    return "STB_NUM";  
+    return "STB_NUM";
   default:
     return "DEFFAULT";
   }
 }
-inline static const char* get_symbols_visibility(unsigned char st_other) {
-  switch (st_other) {
-      case 0x00:
-          return "DEFAULT";  
-      case 0x01:
-          return "INTERNAL"; 
-      case 0x02:
-          return "HIDDEN";   
-      case 0x03:
-          return "PROTECTED";
-      default:
-          return "Unknown Visibility";  
+inline static const char *get_symbols_visibility(unsigned char st_other)
+{
+  switch (st_other)
+  {
+  case 0x00:
+    return "DEFAULT";
+  case 0x01:
+    return "INTERNAL";
+  case 0x02:
+    return "HIDDEN";
+  case 0x03:
+    return "PROTECTED";
+  default:
+    return "Unknown Visibility";
   }
 }
 /*
@@ -386,6 +388,31 @@ static void *get_all_section(FILE *file, ELF_Head *Head)
   }
   return Secbuf;
 }
+static int get_section_chose(void *all_section, char *shstrtab, unsigned short sec_num, const char *sec_name)
+{
+  if (!all_section && !shstrtab)
+  {
+    fprintf(stderr, "error:parameters\n");
+    return -1;
+  }
+  int sec_len = strlen(sec_name);
+
+  ELF_Section *Sec = (ELF_Section *)all_section;
+  int index = 0;
+  int shstrtab_len = 0;
+  for (int i = 0; i < sec_num; i++)
+  {
+
+    index = Sec[i].sh_name;
+    const char *avr = &shstrtab[index];
+    shstrtab_len = strlen(avr);
+    if (avr[1] == sec_name[1] && avr[2] == sec_name[2] && avr[shstrtab_len - 1] == sec_name[sec_len - 1])
+    {
+      return i;
+    }
+  }
+  return -1;
+}
 int Printable_Elf_Head(ELF_Head *p)
 {
   printf("magic: ");
@@ -490,21 +517,45 @@ int Printable_Elf_Symbols(FILE *file, ELF_Head *Head)
 {
 
   char *strtab = (char *)get_section_data(file, Head, ".strtab");
-
   ELF_Symbols *symtab = (ELF_Symbols *)get_section_data(file, Head, ".symtab");
- 
+  
+  char *shstrtab = (char *)get_section_data(file, Head, ".shstrtab");
   ELF_Section *Sec_all = (ELF_Section *)get_all_section(file, Head);
 
-  int sym_num = Sec_all[28].sh_size / sizeof(ELF_Symbols);
-  printf("[Num] [Value] [Size] [Type] [Bind] [Vis] [Ndx Name]\n");
+  int sec_index = get_section_chose(Sec_all, shstrtab, Head->e_shnum, ".symtab");
+
+  int sym_num = Sec_all[sec_index].sh_size / sizeof(ELF_Symbols);
+  printf("\n\n[Num] [Value] [Size] [Type] [Bind] [Vis] [Ndx Name]\n");
+  
   for (int i = 0; i < sym_num; i++)
   {
-    printf("[%02d]  0x%llx  %llu   ", i, symtab[i].st_value, symtab[i].st_size);
-    printf("%s \n[%02d] %s  ", get_symbols_type(symtab[i].st_info),i, get_symbols_type(symtab[i].st_info));
-    printf("%s %d ", get_symbols_visibility(symtab[i].st_other),symtab[i].st_shndx);
+    printf("[%02d]    0x%llx     %llu   ", i, symtab[i].st_value, symtab[i].st_size);
+    printf("%s  \n[%02d]    %s  ", get_symbols_type(symtab[i].st_info), i, get_symbols_type(symtab[i].st_info));
+    printf("%s  %d ", get_symbols_visibility(symtab[i].st_other), symtab[i].st_shndx);
     printf("%s \n", &strtab[symtab[i].st_name]);
   }
+
+  char *dynstr = (char *)get_section_data(file, Head, ".dynstr");
+  ELF_Symbols *dynsym = (ELF_Symbols *)get_section_data(file, Head, ".dynsym");
+
+  sec_index = get_section_chose(Sec_all, shstrtab, Head->e_shnum, ".dynsym");
+  sym_num = Sec_all[sec_index].sh_size / sizeof(ELF_Symbols);
+  
+   printf("\n\n[Num] [Value] [Size] [Type] [Bind] [Vis] [Ndx Name]\n");
+   for (int i = 0; i < sym_num; i++)
+   {
+     printf("[%02d]    0x%llx     %llu   ", i, dynsym[i].st_value, dynsym[i].st_size);
+     printf("%s  \n[%02d]    %s  ", get_symbols_type(dynsym[i].st_info), i, get_symbols_type(dynsym[i].st_info));
+     printf("%s  %d ", get_symbols_visibility(dynsym[i].st_other), dynsym[i].st_shndx);
+     printf("%s \n", &dynstr[dynsym[i].st_name]);
+   }
+     
+
   free(strtab);
   free(symtab);
+  free(shstrtab);
+  free(Sec_all);
+  free(dynstr);
+  free(dynsym);
   return 0;
 }
