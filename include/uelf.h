@@ -1,5 +1,5 @@
-#ifndef USER_ELF
-#define USER_ELF
+#ifndef USERELF
+#define USERELF
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
