@@ -2,6 +2,7 @@
 #define USER_ELF
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -60,4 +61,5 @@ extern int Check_Elf(char *buf);
 extern int Printable_Elf_Head(ELF_Head *p);
 extern int Printable_Elf_Section(FILE* file, ELF_Head *Head);
 extern int Printable_Elf_Segment(FILE* file, ELF_Head *Head);
+extern int Printable_Elf_Symbols(FILE* file, ELF_Head *Head);
 #endif

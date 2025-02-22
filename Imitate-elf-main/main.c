@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
        Printable_Elf_Head((ELF_Head *)Hbuf);
         Printable_Elf_Section(elf_file, (ELF_Head *)Hbuf);
         Printable_Elf_Segment(elf_file, (ELF_Head *)Hbuf);
+        Printable_Elf_Symbols(elf_file, (ELF_Head *)Hbuf);
         break;
       case 'h':
        Printable_Elf_Head((ELF_Head *)Hbuf);
@@ -30,6 +31,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'l':
         Printable_Elf_Segment(elf_file, (ELF_Head *)Hbuf);
+        break;
+        case 's':
+        Printable_Elf_Symbols(elf_file,(ELF_Head*)Hbuf);
         break;
       default:
         printf("usage ./main -a(-h -l -S)");
